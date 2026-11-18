@@ -1,0 +1,10 @@
+# Documentación local y contexto de agentes IA
+docs/
+CLAUDE.md
+AGENTS.md
+
+# Variables de entorno y archivos del sistema
+.env
+.env*.local
+.DS_Store
+Thumbs.db
