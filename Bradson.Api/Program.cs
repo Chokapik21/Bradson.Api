@@ -59,6 +59,10 @@ builder.Services.AddAuthorization(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.MapOpenApi().AllowAnonymous(); // Expone el documento JSON nativo en /openapi/v1.json
 app.MapScalarApiReference().AllowAnonymous(); // Expone la interfaz gráfica en /scalar/v1

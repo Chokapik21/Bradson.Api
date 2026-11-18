@@ -57,13 +57,19 @@ namespace Bradson.Api.Controllers
         //Crea un nuevo usuario o tipo de usuario
         [AllowAnonymous]
         [HttpPost]
-        public async Task<ActionResult<AuthResponseDto>> Create(UsuarioRegistroDto dto) // Crea un nuevo usuario y genera un token JWT para el usuario creado
+        public async Task<ActionResult<AuthResponseDto>> Create(UsuarioRegistroDto dto)
         {
-            if (!Enum.TryParse<RolUsuario>(dto.Rol, out var rol))
-                return BadRequest($"Rol inválido. Valores permitidos: {string.Join(", ", Enum.GetNames<RolUsuario>())}");
+            // Solo se puede registrar Cliente o Trabajador. Esto también cubre
+            // valores numéricos inventados ("99") y el intento de crear un Administrador.
+            if (!Enum.TryParse<RolUsuario>(dto.Rol, true, out var rol)
+                || (rol != RolUsuario.Cliente && rol != RolUsuario.Trabajador))
+                return BadRequest("Rol inválido. Valores permitidos para el registro: Cliente, Trabajador.");
 
             if (await _context.Usuarios.AnyAsync(u => u.Correo == dto.Correo))
                 return Conflict("Ya existe un usuario registrado con ese correo.");
+
+            if (await _context.Usuarios.AnyAsync(u => u.Documento == dto.Documento))
+                return Conflict("Ya existe un usuario registrado con ese documento.");
 
             var usuario = new ClsUsuario
             {
@@ -80,7 +86,7 @@ namespace Bradson.Api.Controllers
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
-            var (token, expiracion) = _tokenService.GenerarToken(usuario); // validacion del token para el usuario creado
+            var (token, expiracion) = _tokenService.GenerarToken(usuario);
 
             return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, new AuthResponseDto
             {

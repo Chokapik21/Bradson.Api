@@ -1,4 +1,4 @@
-﻿using Bradson.Api.Data;
+using Bradson.Api.Data;
 using Bradson.Api.Dtos;
 using Bradson.Api.Models;
 using Microsoft.AspNetCore.Authorization;
