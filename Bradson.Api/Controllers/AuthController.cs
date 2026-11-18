@@ -1,4 +1,4 @@
-﻿using Bradson.Api.Data;
+using Bradson.Api.Data;
 using Bradson.Api.Dtos;
 using Bradson.Api.Models;
 using Bradson.Api.Services;
@@ -56,7 +56,10 @@ namespace Bradson.Api.Controllers
                     Telefono = usuario.Telefono,
                     EstadoCuenta = usuario.EstadoCuenta,
                     Verificado = usuario.Verificado,
-                    Rol = usuario.Rol.ToString()
+                    Rol = usuario.Rol.ToString(),
+                    Latitud = usuario.Latitud,
+                    Longitud = usuario.Longitud,
+                    Direccion = usuario.Direccion
                 }
             });
         }

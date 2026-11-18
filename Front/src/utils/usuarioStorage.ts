@@ -14,6 +14,10 @@ const sesionSchema = z.object({
     estadoCuenta: z.string(),
     verificado: z.boolean(),
     rol: z.enum(["Cliente", "Trabajador", "Administrador"]),
+    // Campos opcionales: solo los tienen los Trabajadores
+    latitud: z.number().nullable().optional(),
+    longitud: z.number().nullable().optional(),
+    direccion: z.string().nullable().optional(),
   }),
   expiracionUtc: z.string(),
 });

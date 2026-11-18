@@ -30,7 +30,11 @@ namespace Bradson.Api.Controllers
             Referencia = r.Referencia,
             IdCliente = r.IdCliente,
             IdTrabajador = r.IdTrabajador,
-            IdServicio = r.IdServicio
+            IdServicio = r.IdServicio,
+            NombreServicio = r.Servicio?.NombreCategoria ?? string.Empty,
+            NombreCliente = r.Cliente?.Nombre,
+            NombreTrabajador = r.Trabajador?.Nombre,
+            TelefonoTrabajador = r.Trabajador?.Telefono
         };
 
         //GET: api/Reserva
@@ -41,7 +45,13 @@ namespace Bradson.Api.Controllers
             var rol = User.FindFirstValue(ClaimTypes.Role);
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var query = _context.Reservas.AsNoTracking().AsQueryable();
+            var query = _context.Reservas
+                .Include(r => r.Servicio)
+                .Include(r => r.Cliente)
+                .Include(r => r.Trabajador)
+                .AsNoTracking()
+                .AsQueryable();
+
             query = rol switch
             {
                 nameof(RolUsuario.Cliente) => query.Where(r => r.IdCliente == userId),
@@ -55,7 +65,12 @@ namespace Bradson.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ReservaDto>> GetById(int id)
         {
-            var r = await _context.Reservas.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var r = await _context.Reservas
+                .Include(r => r.Servicio)
+                .Include(r => r.Cliente)
+                .Include(r => r.Trabajador)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
             return r is null ? NotFound() : Ok(ToDto(r));
         }
 
@@ -107,6 +122,15 @@ namespace Bradson.Api.Controllers
             var servicio = await _context.Servicios.FindAsync(dto.IdServicio);
             if (servicio is null) return BadRequest("El servicio indicado no existe.");
 
+            // Evitar solapamientos: el trabajador no puede tener dos servicios al mismo tiempo
+            var solapada = await _context.Reservas.AnyAsync(r =>
+                r.IdTrabajador == dto.IdTrabajador &&
+                r.Fecha == dto.Fecha &&
+                r.Hora == dto.Hora &&
+                r.Estado != EstadoReserva.Cancelado);
+            if (solapada)
+                return Conflict("El trabajador seleccionado ya tiene una reserva agendada en esa misma fecha y hora.");
+
             var reserva = new ClsReserva
             {
                 Fecha = dto.Fecha,
@@ -124,6 +148,10 @@ namespace Bradson.Api.Controllers
 
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
+
+            reserva.Servicio = servicio;
+            reserva.Trabajador = trabajador;
+
             return CreatedAtAction(nameof(GetById), new { id = reserva.Id }, ToDto(reserva));
         }
 
@@ -143,6 +171,8 @@ namespace Bradson.Api.Controllers
 
             if (!Enum.TryParse<EstadoReserva>(dto.Estado, out var nuevoEstado))
                 return BadRequest($"Estado inválido. Valores permitidos: {string.Join(", ", Enum.GetNames<EstadoReserva>())}");
+
+            reserva.Estado = nuevoEstado;
 
             // Transparencia financiera del pitch: al finalizar, se genera el Pago con 20%/80% automático.
             if (nuevoEstado == EstadoReserva.Finalizado && !await _context.Pagos.AnyAsync(p => p.IdReserva == reserva.Id))

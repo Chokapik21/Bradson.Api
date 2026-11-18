@@ -11,6 +11,10 @@ export interface ReservaDto {
   idCliente: number;
   idTrabajador: number;
   idServicio: number;
+  nombreServicio?: string;
+  nombreCliente?: string | null;
+  nombreTrabajador?: string | null;
+  telefonoTrabajador?: string | null;
 }
 
 //idCliente no va, el backend lo toma del token.

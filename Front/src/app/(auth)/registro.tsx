@@ -56,11 +56,11 @@ export default function Registro() {
       toast.exito("¡Cuenta creada! Bienvenido a Bradson");
       // No hace falta redirigir: al cambiar la sesión, el guard te lleva a la app.
     } catch (e) {
-    toast.error(e instanceof ApiError ? e.message : "Error al registrar usuario");
+      toast.error(e instanceof ApiError ? e.message : "Error al registrar usuario");
     } finally {
-    setCargando(false);
-  }
-};
+      setCargando(false);
+    }
+  };
 
   return (
     <Screen>
@@ -81,8 +81,8 @@ export default function Registro() {
               accessibilityRole="button"
               onPress={() => seleccionarRol("Cliente")}
               className={`flex-1 flex-row items-center justify-center rounded-2xl border py-3.5 ${rolSeleccionado === "Cliente"
-                  ? "border-brand bg-brand-light/30"
-                  : "border-gray-200 bg-white"
+                ? "border-brand bg-brand-light/30"
+                : "border-gray-200 bg-white"
                 }`}
             >
               <Ionicons
@@ -102,8 +102,8 @@ export default function Registro() {
               accessibilityRole="button"
               onPress={() => seleccionarRol("Trabajador")}
               className={`flex-1 flex-row items-center justify-center rounded-2xl border py-3.5 ${rolSeleccionado === "Trabajador"
-                  ? "border-brand bg-brand-light/30"
-                  : "border-gray-200 bg-white"
+                ? "border-brand bg-brand-light/30"
+                : "border-gray-200 bg-white"
                 }`}
             >
               <Ionicons

@@ -32,7 +32,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="inicio"
-        options={{ title: "Inicio", href: esCliente ? undefined : null, tabBarIcon: icono("home", "home-outline") }}
+        options={{ title: "Inicio", tabBarIcon: icono("home", "home-outline") }}
       />
       <Tabs.Screen
         name="reservas"

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Bradson.Api.Dtos
 {
@@ -14,6 +14,10 @@ namespace Bradson.Api.Dtos
         public int IdCliente { get; set; }
         public int IdTrabajador { get; set; }
         public int IdServicio { get; set; }
+        public string NombreServicio { get; set; } = string.Empty;
+        public string? NombreCliente { get; set; }
+        public string? NombreTrabajador { get; set; }
+        public string? TelefonoTrabajador { get; set; }
     }
 
     public class ReservaCreateDto

@@ -1,8 +1,7 @@
 // src/hooks/useServicios.ts
-import { useCallback, useEffect, useState } from "react";
 import { ApiError, serviciosApi } from "@/api";
-import { toast } from "@/components";
 import type { ServicioDto } from "@/types";
+import { useCallback, useEffect, useState } from "react";
 
 export function useServicios() {
   const [servicios, setServicios] = useState<ServicioDto[]>([]);
@@ -10,35 +9,48 @@ export function useServicios() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Devuelve el mensaje de error, o null si salió bien.
-  const cargar = useCallback(async (): Promise<string | null> => {
+  const cargar = useCallback(async (esRefresco = false): Promise<void> => {
+    if (esRefresco) {
+      setRefrescando(true);
+    } else {
+      setCargando(true);
+    }
+
+    setError(null);
+
     try {
-      setServicios(await serviciosApi.listar());
-      setError(null);
-      return null;
+      const datos = await serviciosApi.listar();
+      setServicios(datos);
     } catch (e) {
-      const mensaje = e instanceof ApiError ? e.message : "No se pudieron cargar los servicios.";
-      setError(mensaje);
-      return mensaje;
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : "No se pudieron cargar los servicios."
+      );
+    } finally {
+      setCargando(false);
+      setRefrescando(false);
     }
   }, []);
 
   useEffect(() => {
-    void cargar().finally(() => setCargando(false));
+    void cargar();
   }, [cargar]);
 
   const refrescar = useCallback(async (): Promise<void> => {
-    setRefrescando(true);
-    const mensaje = await cargar();
-    setRefrescando(false);
-    if (mensaje !== null) toast.error(mensaje);
+    await cargar(true);
   }, [cargar]);
 
   const reintentar = useCallback(async (): Promise<void> => {
-    setCargando(true);
     await cargar();
-    setCargando(false);
   }, [cargar]);
 
-  return { servicios, cargando, refrescando, error, refrescar, reintentar };
+  return {
+    servicios,
+    cargando,
+    refrescando,
+    error,
+    refrescar,
+    reintentar,
+  };
 }

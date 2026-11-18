@@ -1,14 +1,14 @@
 // src/components/ServicioCard.tsx
-import { Ionicons } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
-import { Pressable, Text, View } from "react-native";
 import type { ServicioDto } from "@/types";
 import { categoriaDe, type Categoria } from "@/utils/categorias";
 import { formatMoneda } from "@/utils/moneda";
 import { COLOR_BRAND } from "@/utils/theme";
+import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
+import { Pressable, Text, View } from "react-native";
 import { Card } from "./Card";
 
-const iconos: Record<Categoria, ComponentProps<typeof Ionicons>["name"]> = {
+export const ICONOS_CATEGORIA: Record<Categoria, ComponentProps<typeof Ionicons>["name"]> = {
   Limpieza: "home-outline",
   Decoración: "color-palette-outline",
 };
@@ -23,7 +23,7 @@ export function ServicioCard({ servicio, onSolicitar }: ServicioCardProps) {
     <Card>
       <View className="flex-row">
         <View className="h-11 w-11 items-center justify-center rounded-xl bg-brand-light">
-          <Ionicons name={iconos[categoriaDe(servicio)]} size={24} color={COLOR_BRAND} />
+          <Ionicons name={ICONOS_CATEGORIA[categoriaDe(servicio)]} size={24} color={COLOR_BRAND} />
         </View>
         <View className="ml-3 flex-1">
           <Text className="text-base font-bold text-gray-900">{servicio.nombreCategoria}</Text>

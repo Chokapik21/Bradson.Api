@@ -1,10 +1,11 @@
 // src/context/authStore.ts
-import { create } from "zustand";
 import { authApi, setUnauthorizedHandler } from "@/api";
 import type { AuthResponseDto, LoginDto, UsuarioDto, UsuarioRegistroDto } from "@/types";
 import { isoAMilisegundos } from "@/utils/fechas";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { usuarioStorage } from "@/utils/usuarioStorage";
+import { create } from "zustand";
+import { useReservaStore } from "./reservaStore";
 
 export type EstadoSesion = "cargando" | "autenticado" | "anonimo";
 
@@ -15,6 +16,7 @@ interface AuthState {
   iniciarSesion: (dto: LoginDto) => Promise<void>;
   registrar: (dto: UsuarioRegistroDto) => Promise<void>;
   cerrarSesion: () => Promise<void>;
+  actualizarUsuarioLocal: (parcial: Partial<UsuarioDto>) => Promise<void>;
 }
 
 const guardarSesion = async (auth: AuthResponseDto): Promise<void> => {
@@ -60,7 +62,26 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   cerrarSesion: async () => {
     await limpiarSesion();
+    useReservaStore.getState().reiniciar();
     set({ usuario: null, estado: "anonimo" });
+  },
+
+  // Actualiza campos del usuario en store + storage sin volver a llamar al servidor.
+  // Lo usa perfil.tsx tras hacer PUT /usuarios/{id} con la ubicación base.
+  actualizarUsuarioLocal: async (parcial) => {
+    const actual = useAuthStore.getState().usuario;
+    if (!actual) return;
+    const actualizado: UsuarioDto = { ...actual, ...parcial };
+    // Reutilizamos usuarioStorage para persistir la sesión actualizada.
+    const token = await tokenStorage.get();
+    if (token) {
+      // Calculamos la expiración desde lo que ya está guardado; solo actualizamos el usuario.
+      const guardada = await usuarioStorage.get();
+      if (guardada) {
+        await usuarioStorage.set({ usuario: actualizado, expiracionUtc: guardada.expiracionUtc });
+      }
+    }
+    set({ usuario: actualizado });
   },
 }));
 

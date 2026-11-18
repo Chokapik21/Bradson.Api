@@ -1,4 +1,4 @@
-﻿using Bradson.Api.Data;
+using Bradson.Api.Data;
 using Bradson.Api.Dtos;
 using Bradson.Api.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -58,8 +58,18 @@ namespace Bradson.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<CalificacionDto>> Create(CalificacionUpsertDto dto)
         {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
             var reserva = await _context.Reservas.FindAsync(dto.IdReserva);
             if (reserva is null) return BadRequest("La reserva indicada no existe.");
+
+            // Solo el cliente titular de la reserva puede calificarla
+            if (reserva.IdCliente != userId)
+                return Forbid();
+
+            // Solo se pueden calificar servicios que ya finalizaron
+            if (reserva.Estado != EstadoReserva.Finalizado)
+                return BadRequest("Solo puedes calificar un servicio que haya sido finalizado.");
 
             if (await _context.Calificaciones.AnyAsync(c => c.IdReserva == dto.IdReserva))
                 return Conflict("Esta reserva ya tiene una calificación registrada.");

@@ -9,6 +9,10 @@ export interface UsuarioDto {
   estadoCuenta: string;
   verificado: boolean;
   rol: RolUsuario;
+  // Zona base de operación (solo relevante para Trabajador)
+  latitud?: number | null;
+  longitud?: number | null;
+  direccion?: string | null;
 }
 
 export interface LoginDto {
@@ -29,6 +33,10 @@ export interface UsuarioUpdateDto {
   nombre: string;
   telefono: string;
   fotoPerfil?: string | null;
+  // Zona base del Trabajador (opcional; el backend lo ignora para Clientes)
+  latitud?: number | null;
+  longitud?: number | null;
+  direccion?: string | null;
 }
 
 export interface AuthResponseDto {

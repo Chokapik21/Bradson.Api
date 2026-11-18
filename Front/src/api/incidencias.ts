@@ -9,6 +9,10 @@ export const incidenciasApi = {
   obtener: (id: number): Promise<IncidenciaDto> =>
     http.get<IncidenciaDto>(`/incidencias/${id}`).then((r) => r.data),
 
+  // Devuelve las incidencias de una reserva específica (nuevo endpoint del backend).
+  listarPorReserva: (idReserva: number): Promise<IncidenciaDto[]> =>
+    http.get<IncidenciaDto[]>(`/incidencias/reserva/${idReserva}`).then((r) => r.data),
+
   crear: (dto: IncidenciaCreateDto): Promise<IncidenciaDto> =>
     http.post<IncidenciaDto>("/incidencias", dto).then((r) => r.data),
 

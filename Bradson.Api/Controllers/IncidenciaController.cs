@@ -9,6 +9,7 @@ namespace Bradson.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/incidencias")]
     public class IncidenciaController : ControllerBase
     {
         private readonly BradsonDbContext _context;
@@ -47,6 +48,32 @@ namespace Bradson.Api.Controllers
         {
             var i = await _context.Incidencias.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             return i is null ? NotFound() : Ok(ToDto(i));
+        }
+
+        // GET: api/Incidencias/reserva/{idReserva}
+        // Devuelve las incidencias de una reserva concreta.
+        // Solo el cliente o trabajador de esa reserva (o el Administrador) pueden verlas.
+        [HttpGet("reserva/{idReserva}")]
+        public async Task<ActionResult<IEnumerable<IncidenciaDto>>> GetByReserva(int idReserva)
+        {
+            var rol = User.FindFirstValue(ClaimTypes.Role);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var reserva = await _context.Reservas.AsNoTracking().FirstOrDefaultAsync(r => r.Id == idReserva);
+            if (reserva is null) return NotFound("La reserva indicada no existe.");
+
+            // Solo el cliente, el trabajador o el administrador pueden ver incidencias de esta reserva.
+            if (rol != nameof(RolUsuario.Administrador)
+                && reserva.IdCliente != userId
+                && reserva.IdTrabajador != userId)
+                return Forbid();
+
+            var lista = await _context.Incidencias
+                .AsNoTracking()
+                .Where(i => i.IdReserva == idReserva)
+                .ToListAsync();
+
+            return Ok(lista.Select(ToDto));
         }
 
         //POST: api/Incidencias

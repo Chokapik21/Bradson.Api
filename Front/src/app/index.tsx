@@ -7,5 +7,5 @@ export default function Raiz() {
   const usuario = useAuthStore((s) => s.usuario);
 
   if (usuario === null) return <Redirect href="/login" />;
-  return <Redirect href={usuario.rol === "Cliente" ? "/inicio" : "/reservas"} />;
+  return <Redirect href="/inicio" />;
 }

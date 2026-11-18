@@ -16,6 +16,28 @@ import {
   View,
 } from "react-native";
 
+interface CuentaPrueba {
+  etiqueta: string;
+  correo: string;
+  password: string;
+}
+
+// Solo existen en desarrollo (__DEV__) y vienen del .env, nunca del código.
+const CUENTAS_PRUEBA: CuentaPrueba[] = __DEV__
+  ? [
+    {
+      etiqueta: "Cliente",
+      correo: process.env.EXPO_PUBLIC_DEV_CLIENTE_CORREO ?? "",
+      password: process.env.EXPO_PUBLIC_DEV_CLIENTE_PASSWORD ?? "",
+    },
+    {
+      etiqueta: "Trabajador",
+      correo: process.env.EXPO_PUBLIC_DEV_TRABAJADOR_CORREO ?? "",
+      password: process.env.EXPO_PUBLIC_DEV_TRABAJADOR_PASSWORD ?? "",
+    },
+  ].filter((c) => c.correo !== "" && c.password !== "")
+  : [];
+
 export default function Login() {
   const router = useRouter();
   const iniciarSesion = useAuthStore((s) => s.iniciarSesion);
@@ -47,28 +69,6 @@ export default function Login() {
       setCargando(false);
     }
   };
-
-  interface CuentaPrueba {
-  etiqueta: string;
-  correo: string;
-  password: string;
-}
-
-// Solo existen en desarrollo (__DEV__) y vienen del .env, nunca del código.
-const CUENTAS_PRUEBA: CuentaPrueba[] = __DEV__
-  ? [
-      {
-        etiqueta: "Cliente",
-        correo: process.env.EXPO_PUBLIC_DEV_CLIENTE_CORREO ?? "",
-        password: process.env.EXPO_PUBLIC_DEV_CLIENTE_PASSWORD ?? "",
-      },
-      {
-        etiqueta: "Trabajador",
-        correo: process.env.EXPO_PUBLIC_DEV_TRABAJADOR_CORREO ?? "",
-        password: process.env.EXPO_PUBLIC_DEV_TRABAJADOR_PASSWORD ?? "",
-      },
-    ].filter((c) => c.correo !== "" && c.password !== "")
-  : [];
 
   // Función de ayuda para rellenar credenciales de prueba en desarrollo
   const rellenarPrueba = (correo: string, pass: string) => {

@@ -10,6 +10,7 @@ namespace Bradson.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/disponibilidades")]
     public class DisponibilidadController : ControllerBase
     {
         private readonly BradsonDbContext _context;

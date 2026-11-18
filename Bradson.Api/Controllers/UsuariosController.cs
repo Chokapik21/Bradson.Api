@@ -1,4 +1,4 @@
-﻿using Bradson.Api.Data;
+using Bradson.Api.Data;
 using Bradson.Api.Dtos;
 using Bradson.Api.Models;
 using Bradson.Api.Services;
@@ -32,11 +32,15 @@ namespace Bradson.Api.Controllers
             Telefono = u.Telefono,
             EstadoCuenta = u.EstadoCuenta,
             Verificado = u.Verificado,
-            Rol = u.Rol.ToString()
+            Rol = u.Rol.ToString(),
+            Latitud = u.Latitud,
+            Longitud = u.Longitud,
+            Direccion = u.Direccion
         };
 
         //GET: api/Usuarios
-        //Obtiene la lista completa de usuarios
+        //Obtiene la lista completa de usuarios (solo Administrador)
+        [Authorize(Roles = "Administrador")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UsuarioDto>>> GetAll()
         {
@@ -44,11 +48,18 @@ namespace Bradson.Api.Controllers
             return Ok(usuarios.Select(ToDto));
         }
 
-        //GET: api/Servicios/5
-        //Obtiene un usuario específico por su ID
+        //GET: api/Usuarios/5
+        //Obtiene un usuario específico por su ID (solo el titular o Administrador)
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<UsuarioDto>> GetById(int id)
         {
+            var rol = User.FindFirstValue(ClaimTypes.Role);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            if (rol != nameof(RolUsuario.Administrador) && userId != id)
+                return Forbid();
+
             var u = await _context.Usuarios.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             return u is null ? NotFound() : Ok(ToDto(u));
         }
@@ -114,6 +125,15 @@ namespace Bradson.Api.Controllers
             usuario.Nombre = dto.Nombre;
             usuario.Telefono = dto.Telefono;
             usuario.FotoPerfil = dto.FotoPerfil;
+
+            // Solo se actualiza la ubicación base si el usuario que edita es Trabajador
+            // y si se envían valores no nulos. Así un Cliente puede hacer PUT sin romper nada.
+            if (usuario.Rol == RolUsuario.Trabajador)
+            {
+                if (dto.Latitud.HasValue) usuario.Latitud = dto.Latitud;
+                if (dto.Longitud.HasValue) usuario.Longitud = dto.Longitud;
+                if (dto.Direccion is not null) usuario.Direccion = dto.Direccion;
+            }
 
             await _context.SaveChangesAsync();
             return NoContent();

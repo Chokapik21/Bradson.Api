@@ -1,4 +1,4 @@
-﻿using Bradson.Api.Data;
+using Bradson.Api.Data;
 using Bradson.Api.Dtos;
 using Bradson.Api.Models;
 using Bradson.Api.Utils;
@@ -81,8 +81,12 @@ namespace Bradson.Api.Controllers
             if (rol != nameof(RolUsuario.Administrador) && pago.Reserva.IdCliente != userId && pago.Reserva.IdTrabajador != userId)
                 return Forbid();
 
-            if (pago.EstadoPago != EstadoPago.Pendiente)
-                return Conflict($"Este pago ya fue procesado (estado actual: {pago.EstadoPago}).");
+            // Solo se bloquea si ya está Completado o Reembolsado; si está Pendiente o Fallido se permite (re)procesar.
+            if (pago.EstadoPago == EstadoPago.Completado)
+                return Conflict("Este pago ya fue completado exitosamente.");
+
+            if (pago.EstadoPago == EstadoPago.Reembolsado)
+                return Conflict("Este pago ya fue reembolsado.");
 
             if (!Enum.TryParse<MetodoPago>(dto.MetodoPago, out var metodo))
                 return BadRequest($"Método inválido. Valores permitidos: {string.Join(", ", Enum.GetNames<MetodoPago>())}");
@@ -99,15 +103,27 @@ namespace Bradson.Api.Controllers
                 var respuesta = PasarelaSimulada.Procesar(pago.MontoBruto, forzarExito);
                 pago.EstadoPago = respuesta.Exitoso ? EstadoPago.Completado : EstadoPago.Fallido;
 
-                _context.DetallesPago.Add(new ClsDetallePago
+                if (pago.DetallePago is not null)
                 {
-                    IdPago = pago.Id,
-                    Pasarela = "Simulada",
-                    ReferenciaTransaccion = respuesta.ReferenciaTransaccion,
-                    TokenTransaccion = respuesta.Token,
-                    CodigoRespuesta = respuesta.CodigoRespuesta,
-                    FechaRespuesta = DateTime.UtcNow
-                });
+                    // Reutilizar registro si es un reintento tras fallo previo
+                    pago.DetallePago.Pasarela = "Simulada";
+                    pago.DetallePago.ReferenciaTransaccion = respuesta.ReferenciaTransaccion;
+                    pago.DetallePago.TokenTransaccion = respuesta.Token;
+                    pago.DetallePago.CodigoRespuesta = respuesta.CodigoRespuesta;
+                    pago.DetallePago.FechaRespuesta = DateTime.UtcNow;
+                }
+                else
+                {
+                    _context.DetallesPago.Add(new ClsDetallePago
+                    {
+                        IdPago = pago.Id,
+                        Pasarela = "Simulada",
+                        ReferenciaTransaccion = respuesta.ReferenciaTransaccion,
+                        TokenTransaccion = respuesta.Token,
+                        CodigoRespuesta = respuesta.CodigoRespuesta,
+                        FechaRespuesta = DateTime.UtcNow
+                    });
+                }
             }
 
             await _context.SaveChangesAsync();

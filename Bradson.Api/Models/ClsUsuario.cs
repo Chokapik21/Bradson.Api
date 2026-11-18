@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -52,5 +52,8 @@ namespace Bradson.Api.Models
 
         [Column(TypeName = "decimal(9,6)")]
         public decimal? Longitud { get; set; }  //solo se usa realmente si Rol == Trabajador
+
+        [MaxLength(300)]
+        public string? Direccion { get; set; }  //dirección legible de la zona base del Trabajador
     }
 }
