@@ -1,40 +1,35 @@
 ﻿# Bradson
 
-Aplicación móvil de servicios para el hogar (marketplace cliente trabajador) con API REST y panel de reservas, pagos, calificaciones e incidencias.
+Aplicación móvil de servicios para el hogar (marketplace cliente–trabajador) con API REST y gestión de reservas, pagos, calificaciones e incidencias.
 
 ## Tecnologías
 
-### Frontend (Front/)
-
+### Frontend (`Front/`)
 - Expo (SDK 58) + React Native + TypeScript.
-- Expo Router, NativeWind, react-hook-form + Zod, Zustand, Axios.
-- expo-image y expo-image-picker para fotos de perfil.
-- 
-eact-native-maps y expo-location para la selección de zona/ubicación.
+- Expo Router, NativeWind, React Hook Form + Zod, Zustand, Axios.
+- `expo-image` y `expo-image-picker` para fotos de perfil.
+- `react-native-maps` y `expo-location` para la selección de zona/ubicación.
 
-### Backend (Bradson.Api/)
-
+### Backend (`Back/`)
 - .NET 9 (C#), ASP.NET Core Web API REST.
 - Entity Framework Core + SQL Server.
 - Autenticación con JWT.
-- Documentación OpenAPI/Scalar.
+- Documentación OpenAPI / Scalar.
 
-### Base de datos
+### Base de datos (`BD/`)
+- SQL Server (Puerto `1433`).
+- Script de creación y datos de prueba: `BD/DataBase.sql`.
 
-- SQL Server (Server=localhost,1433;Database=Bradson.Api;User Id=sa; Password=123456; TrustServerCertificate=True).
-- Script DDL: Bradson.Api/Database/schema.sql.
+## Estructura del proyecto
 
-## Estructura
-
-`
+```text
 /
 ├── Front/                  # Aplicación móvil (Expo / React Native / TypeScript)
-├── Bradson.Api/            # API REST (.NET 9 / C#)
-├── Bradson.Api/Database/
-│   └── schema.sql         # DDL de la base de datos
-|
+├── Bradson.Api/                   # API REST (.NET 9 / C#)
+├── BD/
+│   └── DataBase.sql        # Script completo (esquema + datos de prueba)
 └── README.md
-`
+```
 
 ## Requisitos
 
@@ -47,27 +42,31 @@ eact-native-maps y expo-location para la selección de zona/ubicación.
 
 ### Backend
 
-`ash
-dotnet run --project Bradson.Api
-`
+```bash
+cd Back
+dotnet run
+```
 
-- API: http://localhost:5019 (HTTP) / https://localhost:7188.
-- Base de datos: ejecutar Bradson.Api/Database/schema.sql.
+- API: `http://localhost:5019` (HTTP) / `https://localhost:7188` (HTTPS).
+- Base de datos: abrir SQL Server Management Studio y ejecutar el script `BD/DataBase.sql`.
 
 ### Frontend
 
-`ash
-cd Front
-npx expo start
-`
+1. Copiar `Front/.env.example` a `Front/.env` y colocar la IP local del equipo.
+2. Iniciar el proyecto:
 
-- Variables de entorno: EXPO_PUBLIC_API_URL=http://192.168.40.24:5019/api.
+```bash
+cd Front
+npm install
+npx expo start
+```
+
+- Variables de entorno: `EXPO_PUBLIC_API_URL=http://[IP_ADDRESS]:5019/api`.
 
 ## Construcción y verificación
 
-- Backend: dotnet build Bradson.Api/Bradson.Api.csproj --nologo -v q -p:OutputPath=/tmp/bradson-build/.
-- Frontend (TypeScript): 
-px tsc --noEmit.
+- Backend: `dotnet build Back/Bradson.Api.csproj`
+- Frontend (TypeScript): `npx tsc --noEmit` (ejecutar dentro de `Front/`).
 
 ## Criterios de entrega
 

@@ -296,6 +296,10 @@ namespace Bradson.Api.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<string>("Documento")
                         .IsRequired()
                         .HasMaxLength(20)
