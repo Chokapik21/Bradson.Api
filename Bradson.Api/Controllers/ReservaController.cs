@@ -14,7 +14,6 @@ namespace Bradson.Api.Controllers
     public class ReservaController : ControllerBase
     {
         private readonly BradsonDbContext _context;
-        private const double RadioCoberturaKm = 10.0;
         private const decimal PorcentajeComision = 0.20m;
 
         public ReservaController(BradsonDbContext context) => _context = context;
@@ -34,7 +33,10 @@ namespace Bradson.Api.Controllers
             NombreServicio = r.Servicio?.NombreCategoria ?? string.Empty,
             NombreCliente = r.Cliente?.Nombre,
             NombreTrabajador = r.Trabajador?.Nombre,
-            TelefonoTrabajador = r.Trabajador?.Telefono
+            TelefonoTrabajador = r.Trabajador?.Telefono,
+            TelefonoCliente = r.Cliente?.Telefono,
+            FotoTrabajador = r.Trabajador?.FotoPerfil,
+            FotoCliente = r.Cliente?.FotoPerfil
         };
 
         //GET: api/Reserva
@@ -98,9 +100,9 @@ namespace Bradson.Api.Controllers
                 {
                     IdTrabajador = u.Id,
                     Nombre = u.Nombre,
-                    DistanciaKm = GeoUtils.CalcularDistanciaKm((double)lat, (double)lon, (double)u.Latitud!, (double)u.Longitud!)
+                    DistanciaKm = GeoUtils.CalcularDistanciaKm((double)lat, (double)lon, (double)u.Latitud!, (double)u.Longitud!),
+                    FotoPerfil = u.FotoPerfil
                 })
-                .Where(t => t.DistanciaKm <= RadioCoberturaKm)
                 .OrderBy(t => t.DistanciaKm)
                 .ToList();
 

@@ -18,6 +18,9 @@ namespace Bradson.Api.Dtos
         public string? NombreCliente { get; set; }
         public string? NombreTrabajador { get; set; }
         public string? TelefonoTrabajador { get; set; }
+        public string? TelefonoCliente { get; set; }
+        public string? FotoTrabajador { get; set; }
+        public string? FotoCliente { get; set; }
     }
 
     public class ReservaCreateDto
@@ -42,5 +45,6 @@ namespace Bradson.Api.Dtos
         public int IdTrabajador { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public double DistanciaKm { get; set; }
+        public string? FotoPerfil { get; set; }
     }
 }

@@ -15,6 +15,9 @@ export interface ReservaDto {
   nombreCliente?: string | null;
   nombreTrabajador?: string | null;
   telefonoTrabajador?: string | null;
+  telefonoCliente?: string | null;
+  fotoTrabajador?: string | null;
+  fotoCliente?: string | null;
 }
 
 //idCliente no va, el backend lo toma del token.
@@ -37,4 +40,5 @@ export interface TrabajadorDisponibleDto {
   idTrabajador: number;
   nombre: string;
   distanciaKm: number;
+  fotoPerfil?: string | null;
 }

@@ -56,6 +56,11 @@ namespace Bradson.Api.Controllers
 
             if (dto.HoraInicio >= dto.HoraFin) return BadRequest("La hora de inicio debe ser menor que la hora de fin.");
 
+            var horaMinima = new TimeOnly(7, 0);
+            var horaMaxima = new TimeOnly(18, 0);
+            if (dto.HoraInicio < horaMinima || dto.HoraFin > horaMaxima)
+                return BadRequest("La disponibilidad debe estar entre 07:00 y 18:00.");
+
             var disponibilidad = new ClsDisponibilidad
             { DiaSemana = dia, HoraInicio = dto.HoraInicio, HoraFin = dto.HoraFin, IdTrabajador = dto.IdTrabajador };
             _context.Disponibilidades.Add(disponibilidad);

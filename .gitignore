@@ -1,10 +1,9 @@
-# Documentación local y contexto de agentes IA
-docs/
-CLAUDE.md
-AGENTS.md
-
 # Variables de entorno y archivos del sistema
 .env
 .env*.local
 .DS_Store
 Thumbs.db
+
+# Fotos subidas al backend (se sirven como archivos estáticos)
+Bradson.Api/wwwroot/uploads/*
+!Bradson.Api/wwwroot/uploads/.gitkeep

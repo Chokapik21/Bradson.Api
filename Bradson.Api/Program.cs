@@ -68,6 +68,7 @@ app.MapOpenApi().AllowAnonymous(); // Expone el documento JSON nativo en /openap
 app.MapScalarApiReference().AllowAnonymous(); // Expone la interfaz gráfica en /scalar/v1
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

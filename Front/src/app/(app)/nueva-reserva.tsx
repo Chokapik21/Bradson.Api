@@ -1,18 +1,22 @@
 // src/app/(app)/nueva-reserva.tsx
 import { ApiError, reservasApi } from "@/api";
-import { Button, CampoFechaHora, CampoUbicacion, EstadoVacio, Header, Input, Screen, ServicioResumen, SkeletonCard, toast } from "@/components";
+import { AppModal, Button, CampoFechaHora, CampoUbicacion, EstadoVacio, Header, Input, Screen, ServicioResumen, SkeletonCard, toast } from "@/components";
 import { useReservaStore } from "@/context/reservaStore";
 import { useServicio } from "@/hooks/useServicio";
+import { COLOR_BRAND } from "@/utils/theme";
 import { aFechaApi, aHoraApi, combinarFechaHora, diaSemanaDe } from "@/utils/fechas";
+import { urlArchivo } from "@/utils/archivo";
 import { coordenadaDesde, direccionDesde, obtenerUbicacionActual, redondearCoordenada } from "@/utils/ubicacion";
 import { reservaSchema, type ReservaFormValues } from "@/utils/validaciones";
+import type { ServicioDto, TrabajadorDisponibleDto } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import type { LatLng } from "react-native-maps";
+import { Image } from "expo-image";
 
 type ResultadoSync = LatLng | "sin-cambios" | "fallo";
 
@@ -22,6 +26,18 @@ export default function NuevaReserva() {
   const id = Number(servicioId);
   const { servicio, cargando, error, reintentar } = useServicio(Number.isInteger(id) && id > 0 ? id : null);
   const setBorrador = useReservaStore((s) => s.setBorrador);
+
+  const [candidatos, setCandidatos] = useState<TrabajadorDisponibleDto[]>([]);
+  const [datosReserva, setDatosReserva] = useState<{
+    servicio: ServicioDto;
+    fecha: string;
+    hora: string;
+    direccion: string;
+    referencia: string | null;
+    latitud: number;
+    longitud: number;
+  } | null>(null);
+  const [modalElegir, setModalElegir] = useState(false);
 
   const {
     control,
@@ -121,7 +137,7 @@ export default function NuevaReserva() {
         return;
       }
 
-      setBorrador({
+      const datosReservaLocal = {
         servicio,
         fecha: aFechaApi(cuando),
         hora: aHoraApi(cuando),
@@ -129,12 +145,43 @@ export default function NuevaReserva() {
         referencia: valores.referencia === "" ? null : valores.referencia,
         latitud,
         longitud,
-        trabajador: candidatos[0], // el backend los devuelve ordenados por distancia
-      });
-      router.push("/pago");
+      };
+
+      // Candidatos dentro del radio de cobertura; si ninguno está dentro, se ofrecen los más cercanos.
+      const candidatosCercanos = candidatos.filter((c) => c.distanciaKm <= 10);
+      const seleccion = candidatosCercanos.length > 0 ? candidatosCercanos : candidatos;
+
+      // Con un solo candidato se reserva directamente; con más se deja al usuario elegir.
+      if (seleccion.length === 1) {
+        setBorrador({ ...datosReservaLocal, trabajador: seleccion[0] });
+        toast.info(
+          `${seleccion[0].nombre} es el trabajador más cercano a tu ubicación. Seguiremos con la reserva.`,
+        );
+        router.push("/pago");
+        return;
+      }
+
+      setCandidatos(seleccion);
+      setDatosReserva(datosReservaLocal);
+      setModalElegir(true);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "No se pudo verificar la disponibilidad.");
     }
+  };
+
+  const elegirTrabajador = (candidato: TrabajadorDisponibleDto): void => {
+    if (datosReserva === null) return;
+    setBorrador({ ...datosReserva, trabajador: candidato });
+    setCandidatos([]);
+    setDatosReserva(null);
+    setModalElegir(false);
+    router.push("/pago");
+  };
+
+  const cancelarEleccion = (): void => {
+    setModalElegir(false);
+    setCandidatos([]);
+    setDatosReserva(null);
   };
 
   return (
@@ -240,6 +287,42 @@ export default function NuevaReserva() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      <AppModal visible={modalElegir} titulo="Elige tu trabajador" onClose={cancelarEleccion}>
+        <ScrollView>
+          {candidatos.map((candidato, indice) => (
+            <Pressable
+              key={candidato.idTrabajador}
+              accessibilityRole="button"
+              onPress={() => elegirTrabajador(candidato)}
+              className="mb-2 flex-row items-center gap-3 rounded-2xl border border-gray-100 p-3"
+            >
+              <View className="h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-brand-light">
+                {candidato.fotoPerfil ? (
+                  <Image source={{ uri: urlArchivo(candidato.fotoPerfil) ?? undefined }} style={{ width: 44, height: 44 }} contentFit="cover" transition={200} />
+                ) : (
+                  <Ionicons name="person" size={20} color={COLOR_BRAND} />
+                )}
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-gray-900">{candidato.nombre}</Text>
+                <Text className="text-xs text-gray-500">{candidato.distanciaKm.toFixed(1)} km</Text>
+              </View>
+              {indice === 0 ? (
+                <View className="rounded-full bg-brand-light px-2 py-1">
+                  <Text className="text-[11px] font-bold text-brand-dark">Más cercano</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ))}
+            <Button
+              titulo="Continuar con el más cercano"
+            variante="secundario"
+            disabled={candidatos.length === 0}
+            onPress={() => elegirTrabajador(candidatos[0])}
+          />
+        </ScrollView>
+      </AppModal>
     </Screen>
   );
 }

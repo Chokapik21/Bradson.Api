@@ -1,16 +1,18 @@
 // src/app/(app)/calificacion.tsx
 import { ApiError, calificacionesApi, usuariosApi } from "@/api";
-import { Button, Header, Input, Screen, toast } from "@/components";
+import { Button, EstadoVacio, Header, Screen, toast } from "@/components";
+import { useAuthStore } from "@/context/authStore";
 import { calificacionSchema, type CalificacionFormValues } from "@/utils/validaciones";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 export default function CalificacionScreen() {
   const router = useRouter();
+  const rol = useAuthStore((s) => s.usuario?.rol);
   const { reservaId, trabajadorId } = useLocalSearchParams<{ reservaId?: string; trabajadorId?: string }>();
   const [nombreTrabajador, setNombreTrabajador] = useState("tu trabajador");
   const [cargando, setCargando] = useState(false);
@@ -36,6 +38,21 @@ export default function CalificacionScreen() {
   });
 
   const puntuacionActual = watch("puntuacion");
+
+  if (rol === "Trabajador") {
+    return (
+      <Screen>
+        <Header mostrarAtras titulo="Calificación" tituloVerde />
+        <View className="flex-1 items-center justify-center px-6">
+          <EstadoVacio
+            icono="lock-closed-outline"
+            titulo="Acción no disponible"
+            mensaje="Solo el cliente que recibió el servicio puede calificarlo."
+          />
+        </View>
+      </Screen>
+    );
+  }
 
   const onSubmit = async (data: CalificacionFormValues) => {
     if (!reservaId) {
@@ -108,15 +125,17 @@ export default function CalificacionScreen() {
             control={control}
             name="comentario"
             render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                className="w-full h-32 bg-gray-100 rounded-2xl p-4 text-gray-900 text-base"
-                placeholder="Deja un comentario sobre tu experiencia (opcional)..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                textAlignVertical="top"
+              <TextInput
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
+                placeholder="Deja un comentario sobre tu experiencia (opcional)..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={5}
+                maxLength={500}
+                textAlignVertical="top"
+                className="w-full min-h-[120px] rounded-xl border border-gray-300 bg-gray-50 px-3 py-3 text-base text-gray-900"
               />
             )}
           />

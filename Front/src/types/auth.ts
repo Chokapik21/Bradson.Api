@@ -13,6 +13,7 @@ export interface UsuarioDto {
   latitud?: number | null;
   longitud?: number | null;
   direccion?: string | null;
+  fotoPerfil?: string | null;
 }
 
 export interface LoginDto {

@@ -1,15 +1,15 @@
 // src/app/(app)/(tabs)/inicio.tsx
-import { ApiError, disponibilidadesApi, reservasApi } from "@/api";
+import { ApiError, calificacionesApi, disponibilidadesApi, reservasApi } from "@/api";
 import { Button, Chips, EstadoVacio, HeaderApp, Input, Screen, ServicioCard, SkeletonCard } from "@/components";
 import { useAuthStore } from "@/context/authStore";
 import { useServicios } from "@/hooks/useServicios";
 import type { ReservaDto, ServicioDto } from "@/types";
 import { categoriaDe, FILTROS, normalizar, type FiltroCategoria } from "@/utils/categorias";
-import { formatearFechaApi } from "@/utils/fechas";
+import { formatearFechaHoraApi, milisegundosReserva } from "@/utils/fechas";
 import { formatMoneda } from "@/utils/moneda";
 import { COLOR_BRAND } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Pressable, RefreshControl, Text, View, ActivityIndicator } from "react-native";
 
@@ -29,6 +29,31 @@ function Catalogo() {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<FiltroCategoria>("Todos");
+  const [proxima, setProxima] = useState<ReservaDto | null>(null);
+  const [cargandoProxima, setCargandoProxima] = useState(true);
+
+  const cargarProxima = useCallback((): void => {
+    reservasApi
+      .listar()
+      .then((data) => {
+        const activas = data
+          .filter((r) => r.estado === "Pendiente" || r.estado === "EnCurso")
+          .sort(
+            (a, b) =>
+              milisegundosReserva(a.fecha, a.hora) - milisegundosReserva(b.fecha, b.hora),
+          );
+        setProxima(activas[0] ?? null);
+      })
+      .catch(() => setProxima(null))
+      .finally(() => setCargandoProxima(false));
+  }, []);
+
+  // Se recarga al volver a la pestaña para reflejar una reserva recién creada.
+  useFocusEffect(
+    useCallback(() => {
+      cargarProxima();
+    }, [cargarProxima]),
+  );
 
   const filtrados = useMemo(() => {
     const termino = normalizar(busqueda.trim());
@@ -46,6 +71,7 @@ function Catalogo() {
 
   const encabezado = (
     <View className="pb-3">
+      <ProximaReservaCard reserva={proxima} cargando={cargandoProxima} />
       <Input
         icono="search-outline"
         placeholder="Buscar servicios..."
@@ -74,7 +100,21 @@ function Catalogo() {
   ) : servicios.length === 0 ? (
     <EstadoVacio icono="albums-outline" titulo="Aún no hay servicios disponibles" mensaje="Vuelve a intentarlo más tarde." />
   ) : (
-    <EstadoVacio icono="search-outline" titulo="No encontramos resultados" mensaje="Prueba con otra búsqueda o categoría." />
+    <View>
+      <EstadoVacio
+        icono="search-outline"
+        titulo="No encontramos resultados"
+        mensaje="Prueba con otra búsqueda o categoría."
+      />
+      <Button
+        titulo="Limpiar filtros"
+        variante="secundario"
+        onPress={() => {
+          setBusqueda("");
+          setFiltro("Todos");
+        }}
+      />
+    </View>
   );
 
   return (
@@ -96,35 +136,128 @@ function Catalogo() {
   );
 }
 
+// ─── Acceso rápido a la reserva activa más cercana ───────────────────────────
+function ProximaReservaCard({
+  reserva,
+  cargando,
+}: {
+  reserva: ReservaDto | null;
+  cargando: boolean;
+}) {
+  const router = useRouter();
+
+  if (cargando) {
+    return <View className="mb-4 h-32 rounded-2xl bg-gray-100" />;
+  }
+
+  if (reserva === null) {
+    return (
+      <View className="mb-4 flex-row items-center gap-3 rounded-2xl border border-dashed border-brand/50 bg-brand-light/40 p-4">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-white">
+          <Ionicons name="sparkles-outline" size={22} color={COLOR_BRAND} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-bold text-brand-dark">Agenda tu primer servicio</Text>
+          <Text className="mt-0.5 text-xs text-gray-600">
+            Elige una categoría, selecciona la hora y listo.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const enCurso = reserva.estado === "EnCurso";
+
+  return (
+    <View className="mb-4 rounded-2xl bg-brand p-4">
+      <View className="flex-row items-center justify-between">
+        <Text className="text-xs font-bold uppercase tracking-wider text-white/80">
+          {enCurso ? "Servicio en curso" : "Tu próximo servicio"}
+        </Text>
+        <View
+          className={`rounded-full px-2 py-0.5 ${enCurso ? "bg-blue-500" : "bg-white/20"}`}
+        >
+          <Text className="text-[11px] font-bold text-white">
+            {enCurso ? "En curso" : "Programado"}
+          </Text>
+        </View>
+      </View>
+
+      <Text className="mt-2 text-lg font-bold text-white" numberOfLines={1}>
+        {reserva.nombreServicio || "Servicio agendado"}
+      </Text>
+
+      <View className="mt-1 flex-row items-center gap-1.5">
+        <Ionicons name="calendar-outline" size={14} color="#D1FAE5" />
+        <Text className="text-sm text-white/90">
+          {formatearFechaHoraApi(reserva.fecha, reserva.hora)}
+        </Text>
+      </View>
+
+      {reserva.nombreTrabajador ? (
+        <View className="mt-1 flex-row items-center gap-1.5">
+          <Ionicons name="person-outline" size={14} color="#D1FAE5" />
+          <Text className="text-sm text-white/90" numberOfLines={1}>
+            {reserva.nombreTrabajador}
+          </Text>
+        </View>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push(`/(app)/reserva/${reserva.id}`)}
+        className="mt-3 h-10 flex-row items-center justify-center gap-2 rounded-full bg-white active:opacity-80"
+      >
+        <Text className="text-sm font-bold text-brand-dark">Ver detalle</Text>
+        <Ionicons name="arrow-forward" size={16} color="#166534" />
+      </Pressable>
+    </View>
+  );
+}
+
 // ─── Vista del Trabajador: panel operativo ───────────────────────────────────
 function DashboardTrabajador() {
   const usuario = useAuthStore((s) => s.usuario);
   const router = useRouter();
 
   const [reservas, setReservas] = useState<ReservaDto[]>([]);
+  const [promedioCalificacion, setPromedioCalificacion] = useState<number | null>(null);
+  const [totalCalificaciones, setTotalCalificaciones] = useState(0);
   const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sinHorarios, setSinHorarios] = useState(false);
   const [procesando, setProcesando] = useState<number | null>(null);
 
   const sinUbicacion = !usuario?.latitud || !usuario?.longitud;
 
-  const cargar = useCallback((): void => {
-    setCargando(true);
+  const cargar = useCallback((esRefresco = false): void => {
+    if (esRefresco) setRefrescando(true);
+    else setCargando(true);
     setError(null);
 
     Promise.all([
       reservasApi.listar(),
       disponibilidadesApi.listar(),
+      calificacionesApi.listar(),
     ])
-      .then(([res, disp]) => {
+      .then(([res, disp, cal]) => {
         setReservas(res);
         setSinHorarios(disp.length === 0);
+        setTotalCalificaciones(cal.length);
+        setPromedioCalificacion(
+          cal.length === 0
+            ? null
+            : cal.reduce((total, c) => total + c.puntuacion, 0) / cal.length,
+        );
       })
       .catch((e: unknown) => {
         setError(e instanceof ApiError ? e.message : "Error al cargar datos.");
       })
-      .finally(() => setCargando(false));
+      .finally(() => {
+        setCargando(false);
+        setRefrescando(false);
+      });
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
@@ -165,9 +298,19 @@ function DashboardTrabajador() {
   const pendientes = reservas.filter((r) => r.estado === "Pendiente").length;
   const enCurso = reservas.filter((r) => r.estado === "EnCurso").length;
   const finalizados = reservas.filter((r) => r.estado === "Finalizado").length;
+  const facturado = reservas
+    .filter((r) => r.estado === "Finalizado")
+    .reduce((total, r) => total + r.precioTotal, 0);
 
-  // Solo las activas para el listado principal
-  const activas = reservas.filter((r) => r.estado === "Pendiente" || r.estado === "EnCurso");
+  // En curso primero; luego por fecha ascendente.
+  const activas = reservas
+    .filter((r) => r.estado === "Pendiente" || r.estado === "EnCurso")
+    .sort((a, b) => {
+      if (a.estado !== b.estado) return a.estado === "EnCurso" ? -1 : 1;
+      return milisegundosReserva(a.fecha, a.hora) - milisegundosReserva(b.fecha, b.hora);
+    });
+
+  const proximo = activas[0] ?? null;
 
   return (
     <Screen>
@@ -179,7 +322,11 @@ function DashboardTrabajador() {
         showsVerticalScrollIndicator={false}
         contentContainerClassName="pb-8"
         refreshControl={
-          <RefreshControl refreshing={false} onRefresh={cargar} colors={[COLOR_BRAND]} />
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={() => cargar(true)}
+            colors={[COLOR_BRAND]}
+          />
         }
         ListHeaderComponent={
           <View className="px-4 pt-2 pb-3">
@@ -215,11 +362,67 @@ function DashboardTrabajador() {
               </Pressable>
             )}
 
+            {/* Próximo servicio */}
+            {!cargando && proximo ? (
+              <Pressable
+                onPress={() => router.push(`/(app)/reserva/${proximo.id}`)}
+                className="mb-4 flex-row items-center gap-3 rounded-2xl bg-brand p-4 active:opacity-90"
+              >
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <Ionicons
+                    name={proximo.estado === "EnCurso" ? "construct-outline" : "alarm-outline"}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[11px] font-bold uppercase tracking-wider text-white/80">
+                    {proximo.estado === "EnCurso" ? "Servicio en curso" : "Próximo servicio"}
+                  </Text>
+                  <Text className="text-sm font-bold text-white" numberOfLines={1}>
+                    {proximo.nombreServicio || "Servicio asignado"}
+                  </Text>
+                  <Text className="text-xs text-white/90" numberOfLines={1}>
+                    {formatearFechaHoraApi(proximo.fecha, proximo.hora)}
+                    {proximo.nombreCliente ? ` · ${proximo.nombreCliente}` : ""}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
+
             {/* KPIs */}
             <View className="flex-row gap-3 mb-4">
               <KpiCard valor={pendientes} etiqueta="Pendientes" color="text-yellow-700" fondo="bg-yellow-50" />
               <KpiCard valor={enCurso} etiqueta="En Curso" color="text-blue-700" fondo="bg-blue-50" />
               <KpiCard valor={finalizados} etiqueta="Finalizados" color="text-brand" fondo="bg-brand-light" />
+            </View>
+
+            {/* Resumen de actividad */}
+            <View className="mb-4 flex-row gap-3">
+              <View className="flex-1 rounded-2xl border border-gray-200 bg-white p-3">
+                <Text className="text-xs text-gray-500">Facturado</Text>
+                <Text className="mt-0.5 text-lg font-extrabold text-brand">
+                  {formatMoneda(facturado)}
+                </Text>
+                <Text className="text-[11px] text-gray-400">
+                  {finalizados} {finalizados === 1 ? "servicio finalizado" : "servicios finalizados"}
+                </Text>
+              </View>
+              <View className="flex-1 rounded-2xl border border-gray-200 bg-white p-3">
+                <Text className="text-xs text-gray-500">Calificación</Text>
+                <View className="mt-0.5 flex-row items-center gap-1">
+                  <Ionicons name="star" size={16} color="#F59E0B" />
+                  <Text className="text-lg font-extrabold text-gray-900">
+                    {promedioCalificacion === null ? "—" : promedioCalificacion.toFixed(1)}
+                  </Text>
+                </View>
+                <Text className="text-[11px] text-gray-400">
+                  {totalCalificaciones === 0
+                    ? "Sin reseñas aún"
+                    : `${totalCalificaciones} ${totalCalificaciones === 1 ? "reseña" : "reseñas"}`}
+                </Text>
+              </View>
             </View>
 
             <Text className="text-base font-bold text-gray-900 mb-2">Servicios Activos</Text>
@@ -228,7 +431,7 @@ function DashboardTrabajador() {
             {error !== null && (
               <View>
                 <EstadoVacio icono="cloud-offline-outline" titulo="Error al cargar" mensaje={error} />
-                <Button titulo="Reintentar" variante="secundario" onPress={cargar} />
+                <Button titulo="Reintentar" variante="secundario" onPress={() => cargar()} />
               </View>
             )}
           </View>
@@ -321,7 +524,7 @@ function ReservaActivaCard({
       <View className="flex-row items-center gap-1.5">
         <Ionicons name="calendar-outline" size={14} color="#6B7280" />
         <Text className="text-sm text-gray-600">
-          {formatearFechaApi(reserva.fecha)} a las {reserva.hora.slice(0, 5)}
+          {formatearFechaHoraApi(reserva.fecha, reserva.hora)}
         </Text>
       </View>
 

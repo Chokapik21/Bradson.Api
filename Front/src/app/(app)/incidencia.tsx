@@ -2,11 +2,12 @@
 import { ApiError, incidenciasApi } from "@/api";
 import { Button, Card, EstadoVacio, Header, Screen, SkeletonCard, toast } from "@/components";
 import type { IncidenciaCreateDto, IncidenciaDto } from "@/types";
+import { COLOR_BRAND } from "@/utils/theme";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { z } from "zod";
 
 // ─── Tipos de novedad disponibles ───────────────────────────────────────────
@@ -95,6 +96,7 @@ export default function Incidencia() {
   const [enviando, setEnviando] = useState(false);
   const [historial, setHistorial] = useState<IncidenciaDto[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(true);
+  const [refrescandoHistorial, setRefrescandoHistorial] = useState(false);
   const [errorHistorial, setErrorHistorial] = useState<string | null>(null);
 
   const {
@@ -112,9 +114,10 @@ export default function Incidencia() {
   const descripcionActual = watch("descripcion");
 
   // Cargar historial de incidencias de esta reserva
-  const cargarHistorial = (): void => {
+  const cargarHistorial = (esRefresco = false): void => {
     if (!idValido) return;
-    setCargandoHistorial(true);
+    if (esRefresco) setRefrescandoHistorial(true);
+    else setCargandoHistorial(true);
     setErrorHistorial(null);
     incidenciasApi
       .listarPorReserva(reservaId)
@@ -129,7 +132,10 @@ export default function Incidencia() {
           );
         }
       })
-      .finally(() => setCargandoHistorial(false));
+      .finally(() => {
+        setCargandoHistorial(false);
+        setRefrescandoHistorial(false);
+      });
   };
 
   useEffect(() => {
@@ -188,6 +194,13 @@ export default function Incidencia() {
         contentContainerClassName="pb-10 px-4 pt-2"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescandoHistorial}
+            onRefresh={() => cargarHistorial(true)}
+            colors={[COLOR_BRAND]}
+          />
+        }
       >
         {/* Formulario ─────────────────────────────────────────────────── */}
         <Card className="p-4 mb-6 gap-4">
@@ -287,7 +300,7 @@ export default function Incidencia() {
             <Button
               titulo="Reintentar"
               variante="secundario"
-              onPress={cargarHistorial}
+              onPress={() => cargarHistorial()}
             />
           </View>
         ) : historial.length === 0 ? (

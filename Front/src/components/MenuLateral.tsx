@@ -1,8 +1,10 @@
 // src/components/MenuLateral.tsx
 import { useAuthStore } from "@/context/authStore";
 import { COLOR_BRAND } from "@/utils/theme";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { urlArchivo } from "@/utils/archivo";
 import type { ComponentProps } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,8 +63,12 @@ export function MenuLateral({ visible, onClose }: MenuLateralProps) {
           style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }}
         >
           <View className="mb-4 flex-row items-center">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-brand-light">
-              <Ionicons name="person" size={24} color={COLOR_BRAND} />
+            <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-brand-light">
+              {usuario.fotoPerfil ? (
+                <Image source={{ uri: urlArchivo(usuario.fotoPerfil) ?? undefined }} style={{ width: 48, height: 48 }} contentFit="cover" transition={200} />
+              ) : (
+                <Ionicons name="person" size={24} color={COLOR_BRAND} />
+              )}
             </View>
             <View className="ml-3 flex-1">
               <Text numberOfLines={1} className="text-base font-bold text-gray-900">

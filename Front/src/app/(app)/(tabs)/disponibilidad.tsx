@@ -13,6 +13,11 @@ const DIAS_SEMANA: DiaSemana[] = [
   "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo",
 ];
 
+const HORA_MIN = "07:00";
+const HORA_MAX = "18:00";
+const HORA_MIN_MINUTOS = 7 * 60;
+const HORA_MAX_MINUTOS = 18 * 60;
+
 const DIAS_DISPLAY: Record<DiaSemana, string> = {
   Lunes: "Lunes",
   Martes: "Martes",
@@ -85,8 +90,20 @@ export default function Disponibilidad() {
 
   const validarYGuardar = async (): Promise<void> => {
     const errs: { inicio?: string; fin?: string } = {};
-    if (!esHoraValida(horaInicio)) errs.inicio = "Formato inválido. Usa HH:mm (ej. 08:00)";
-    if (!esHoraValida(horaFin)) errs.fin = "Formato inválido. Usa HH:mm (ej. 17:00)";
+    if (!esHoraValida(horaInicio)) errs.inicio = "Formato inválido. Usa HH:mm (ej. 07:00)";
+    if (!esHoraValida(horaFin)) errs.fin = "Formato inválido. Usa HH:mm (ej. 18:00)";
+    if (
+      !errs.inicio &&
+      (horaAMinutos(horaInicio) < HORA_MIN_MINUTOS || horaAMinutos(horaInicio) > HORA_MAX_MINUTOS)
+    ) {
+      errs.inicio = `La hora debe estar entre ${HORA_MIN} y ${HORA_MAX}.`;
+    }
+    if (
+      !errs.fin &&
+      (horaAMinutos(horaFin) < HORA_MIN_MINUTOS || horaAMinutos(horaFin) > HORA_MAX_MINUTOS)
+    ) {
+      errs.fin = `La hora debe estar entre ${HORA_MIN} y ${HORA_MAX}.`;
+    }
     if (!errs.inicio && !errs.fin && horaAMinutos(horaFin) <= horaAMinutos(horaInicio)) {
       errs.fin = "La hora de fin debe ser posterior a la de inicio.";
     }
@@ -265,7 +282,7 @@ export default function Disponibilidad() {
         <TextInput
           value={horaInicio}
           onChangeText={(t) => { setHoraInicio(t); setErroresForm((p) => ({ ...p, inicio: undefined })); }}
-          placeholder="08:00"
+          placeholder={HORA_MIN}
           keyboardType="numbers-and-punctuation"
           maxLength={5}
           className={`mb-1 h-11 rounded-xl border px-3 text-base text-gray-800 ${
@@ -281,7 +298,7 @@ export default function Disponibilidad() {
         <TextInput
           value={horaFin}
           onChangeText={(t) => { setHoraFin(t); setErroresForm((p) => ({ ...p, fin: undefined })); }}
-          placeholder="17:00"
+          placeholder={HORA_MAX}
           keyboardType="numbers-and-punctuation"
           maxLength={5}
           className={`mb-1 h-11 rounded-xl border px-3 text-base text-gray-800 ${
@@ -289,8 +306,12 @@ export default function Disponibilidad() {
           }`}
         />
         {erroresForm.fin ? (
-          <Text className="mb-3 text-xs text-red-600">{erroresForm.fin}</Text>
-        ) : <View className="mb-3" />}
+          <Text className="mb-2 text-xs text-red-600">{erroresForm.fin}</Text>
+        ) : null}
+
+        <Text className="mb-3 text-xs text-gray-500">
+          Horario permitido: {HORA_MIN} – {HORA_MAX}.
+        </Text>
 
         <Button titulo="Guardar franja" cargando={guardando} onPress={() => void validarYGuardar()} />
       </AppModal>

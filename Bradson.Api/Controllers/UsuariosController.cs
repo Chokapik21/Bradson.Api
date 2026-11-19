@@ -14,13 +14,23 @@ namespace Bradson.Api.Controllers
     [Route("api/[controller]")]
     public class UsuariosController : ControllerBase
     {
+        private const long TamanoMaximoFoto = 5 * 1024 * 1024;
+        private static readonly Dictionary<string, string> ExtensionesFoto = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["image/jpeg"] = ".jpg",
+            ["image/png"] = ".png",
+            ["image/webp"] = ".webp"
+        };
+
         private readonly BradsonDbContext _context;
         private readonly TokenService _tokenService;
+        private readonly IWebHostEnvironment _environment;
         private readonly PasswordHasher<ClsUsuario> _hasher = new();
-        public UsuariosController(BradsonDbContext context, TokenService tokenService) // Constructor que recibe el contexto de la base de datos y el servicio de token
+        public UsuariosController(BradsonDbContext context, TokenService tokenService, IWebHostEnvironment environment) // Constructor que recibe el contexto de la base de datos y el servicio de token
         {
             _context = context;
             _tokenService = tokenService;
+            _environment = environment;
         }
 
         private static UsuarioDto ToDto(ClsUsuario u) => new()
@@ -35,7 +45,8 @@ namespace Bradson.Api.Controllers
             Rol = u.Rol.ToString(),
             Latitud = u.Latitud,
             Longitud = u.Longitud,
-            Direccion = u.Direccion
+            Direccion = u.Direccion,
+            FotoPerfil = u.FotoPerfil
         };
 
         //GET: api/Usuarios
@@ -124,7 +135,6 @@ namespace Bradson.Api.Controllers
 
             usuario.Nombre = dto.Nombre;
             usuario.Telefono = dto.Telefono;
-            usuario.FotoPerfil = dto.FotoPerfil;
 
             // Solo se actualiza la ubicación base si el usuario que edita es Trabajador
             // y si se envían valores no nulos. Así un Cliente puede hacer PUT sin romper nada.
@@ -137,6 +147,57 @@ namespace Bradson.Api.Controllers
 
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        //POST: api/Usuarios/5/foto
+        //Sube o reemplaza la foto de perfil (solo el titular o Administrador)
+        [HttpPost("{id}/foto")]
+        [RequestSizeLimit(TamanoMaximoFoto)]
+        public async Task<ActionResult<UsuarioDto>> SubirFoto(int id, IFormFile archivo)
+        {
+            var rol = User.FindFirstValue(ClaimTypes.Role);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            if (rol != nameof(RolUsuario.Administrador) && userId != id)
+                return Forbid();
+
+            if (archivo is null || archivo.Length == 0)
+                return BadRequest("Selecciona una imagen para subir.");
+
+            if (archivo.Length > TamanoMaximoFoto)
+                return BadRequest("La imagen no puede superar los 5 MB.");
+
+            if (!ExtensionesFoto.TryGetValue(archivo.ContentType ?? string.Empty, out var extension))
+                return BadRequest("Formato no permitido. Usa una imagen JPG, PNG o WEBP.");
+
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario is null) return NotFound();
+
+            var carpeta = Path.Combine(
+                _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"),
+                "uploads",
+                "perfiles");
+            Directory.CreateDirectory(carpeta);
+
+            var nombreArchivo = $"perfil-{id}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}{extension}";
+            var rutaFisica = Path.Combine(carpeta, nombreArchivo);
+
+            await using (var stream = System.IO.File.Create(rutaFisica))
+                await archivo.CopyToAsync(stream);
+
+            // Elimina la foto anterior solo si era un archivo local.
+            if (!string.IsNullOrWhiteSpace(usuario.FotoPerfil)
+                && usuario.FotoPerfil.StartsWith("/uploads/perfiles/", StringComparison.OrdinalIgnoreCase))
+            {
+                var anterior = Path.Combine(carpeta, Path.GetFileName(usuario.FotoPerfil));
+                if (System.IO.File.Exists(anterior))
+                    System.IO.File.Delete(anterior);
+            }
+
+            usuario.FotoPerfil = $"/uploads/perfiles/{nombreArchivo}";
+            await _context.SaveChangesAsync();
+
+            return Ok(ToDto(usuario));
         }
 
         //DELETE: api/Usuarios/5

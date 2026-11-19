@@ -18,6 +18,7 @@ const sesionSchema = z.object({
     latitud: z.number().nullable().optional(),
     longitud: z.number().nullable().optional(),
     direccion: z.string().nullable().optional(),
+    fotoPerfil: z.string().nullable().optional(),
   }),
   expiracionUtc: z.string(),
 });

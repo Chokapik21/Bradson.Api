@@ -35,7 +35,15 @@
       ],
       "expo-secure-store",
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Bradson necesita tu foto de perfil para que clientes y trabajadores te identifiquen.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

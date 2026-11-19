@@ -16,6 +16,7 @@ namespace Bradson.Api.Dtos
         public decimal? Latitud { get; set; }
         public decimal? Longitud { get; set; }
         public string? Direccion { get; set; }
+        public string? FotoPerfil { get; set; }
     }
 
     public class UsuarioRegistroDto

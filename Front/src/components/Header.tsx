@@ -11,6 +11,7 @@ interface HeaderProps {
     onPressAtras?: () => void;
     mostrarMenu?: boolean;
     mostrarNotificacion?: boolean;
+    puntoNotificacion?: boolean;
     derecha?: ReactNode;
     tituloVerde?: boolean;
     onPressMenu?: () => void;
@@ -24,6 +25,7 @@ export function Header({
     onPressAtras,
     mostrarMenu = false,
     mostrarNotificacion = false,
+    puntoNotificacion = false,
     derecha,
     tituloVerde = false,
     onPressMenu,
@@ -92,6 +94,9 @@ export function Header({
                         className="h-10 w-10 items-center justify-center rounded-full active:bg-gray-100"
                     >
                         <Ionicons name="notifications-outline" size={24} color="#1F2937" />
+                        {puntoNotificacion ? (
+                            <View className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
+                        ) : null}
                     </Pressable>
                 ) : null}
             </View>
